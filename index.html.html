@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0F2136">
+<title>Nemdroid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F2136; --panel:#152D47; --accent:#5B9EC9;
+    --ink:#E9F2F9; --muted:#7A93A8; --rec:#E25C6E;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Archivo',system-ui,sans-serif;
+    display:flex; flex-direction:column;
+    padding:max(env(safe-area-inset-top),16px) 20px max(env(safe-area-inset-bottom),20px);
+    user-select:none;
+  }
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+  header h1{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  header .st{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--muted)}
+
+  /* --- patient code chips --- */
+  .codes{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  .chip{
+    border:1px solid #24415F; background:var(--panel); color:var(--ink);
+    font-family:'Spline Sans Mono',monospace; font-size:15px;
+    padding:10px 16px; border-radius:10px; cursor:pointer;
+  }
+  .chip.sel{background:var(--accent); border-color:var(--accent); color:#0B1B2C; font-weight:500}
+  .chip.edit{color:var(--muted); border-style:dashed}
+  .hint{font-size:12px;color:var(--muted);min-height:16px;margin-bottom:4px}
+
+  /* --- record stage --- */
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+  .ringwrap{position:relative;width:230px;height:230px;display:flex;align-items:center;justify-content:center}
+  svg.ring{position:absolute;inset:0;transform:rotate(-90deg)}
+  .lvl{fill:none;stroke:var(--accent);stroke-width:3;opacity:.9;transition:r .08s linear}
+  .base{fill:none;stroke:#24415F;stroke-width:1.5}
+  #recbtn{
+    width:170px;height:170px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--panel); color:var(--ink);
+    font-family:'Archivo',sans-serif;font-weight:600;font-size:17px;letter-spacing:.06em;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    box-shadow:0 0 0 1px #24415F, 0 10px 30px rgba(0,0,0,.35);
+  }
+  #recbtn .dot{width:16px;height:16px;border-radius:50%;background:var(--rec)}
+  body.rec #recbtn{background:var(--rec);color:#fff;box-shadow:0 0 0 1px var(--rec),0 10px 34px rgba(226,92,110,.35)}
+  body.rec #recbtn .dot{background:#fff;animation:blink 1.2s infinite}
+  body.rec .lvl{stroke:var(--rec)}
+  @keyframes blink{50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){body.rec #recbtn .dot{animation:none}}
+
+  #timer{font-family:'Spline Sans Mono',monospace;font-size:44px;font-weight:400;
+    font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--ink)}
+  body:not(.rec) #timer{color:var(--muted)}
+
+  .row{display:flex;gap:14px}
+  .btn2{
+    border:1px solid #24415F;background:transparent;color:var(--ink);
+    font-family:'Archivo',sans-serif;font-weight:600;font-size:14px;letter-spacing:.05em;
+    padding:13px 26px;border-radius:12px;cursor:pointer;
+  }
+  .btn2:disabled{opacity:.3}
+  .btn2.stop{border-color:var(--accent);color:var(--accent)}
+
+  footer{font-size:12px;color:var(--muted);text-align:center;line-height:1.6;min-height:34px}
+  footer b{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Nemdroid</h1>
+  <span class="st" id="clock"></span>
+</header>
+
+<div class="codes" id="codes"></div>
+<div class="hint" id="hint">Elegí el código del paciente antes de grabar.</div>
+
+<div class="stage">
+  <div class="ringwrap">
+    <svg class="ring" viewBox="0 0 230 230">
+      <circle class="base" cx="115" cy="115" r="108"/>
+      <circle class="lvl" id="lvl" cx="115" cy="115" r="92"/>
+    </svg>
+    <button id="recbtn"><span class="dot"></span><span id="reclbl">GRABAR</span></button>
+  </div>
+  <div id="timer">00:00</div>
+  <div class="row">
+    <button class="btn2" id="pausebtn" disabled>Pausar</button>
+    <button class="btn2 stop" id="stopbtn" disabled>Detener y guardar</button>
+  </div>
+</div>
+
+<footer id="status">El archivo se guarda en <b>Descargas</b> y Syncthing lo lleva a la PC.</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const K = 'rbq_codes';
+
+  // ---------- patient codes (localStorage) ----------
+  let codes = JSON.parse(localStorage.getItem(K) || '["p01","p02","p03"]');
+  let sel = null;
+
+  function renderCodes(){
+    const box = $('codes'); box.innerHTML = '';
+    codes.forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (c === sel ? ' sel' : '');
+      b.textContent = c;
+      b.onclick = () => { if(recording) return; sel = c; renderCodes(); $('hint').textContent = 'Grabando para: ' + c; };
+      box.appendChild(b);
+    });
+    const ed = document.createElement('button');
+    ed.className = 'chip edit'; ed.textContent = '± códigos';
+    ed.onclick = editCodes;
+    box.appendChild(ed);
+  }
+  function editCodes(){
+    if (recording) return;
+    const cur = codes.join(', ');
+    const ans = prompt('Códigos de pacientes (separados por coma).\nSolo letras/números/guiones, sin nombres reales:', cur);
+    if (ans === null) return;
+    codes = ans.split(',').map(s => s.trim().toLowerCase())
+               .filter(s => /^[a-z0-9\-]{2,12}$/.test(s));
+    if (!codes.length) codes = ['p01'];
+    if (!codes.includes(sel)) sel = null;
+    localStorage.setItem(K, JSON.stringify(codes));
+    renderCodes();
+  }
+  renderCodes();
+
+  // ---------- clock ----------
+  setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); }, 1000);
+
+  // ---------- recording ----------
+  let recording = false, paused = false;
+  let rec = null, chunks = [], t0 = 0, tPaused = 0, pauseStart = 0, tick = null;
+  let ac = null, analyser = null, raf = null, wakeLock = null;
+
+  const fmt = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(Math.floor(s%60)).padStart(2,'0');
+
+  function stamp(){
+    const d = new Date(), p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+  }
+
+  async function start(){
+    if (!sel){ $('hint').textContent = '⚠ Elegí primero el código del paciente.'; return; }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:true } });
+    } catch(e){ $('status').textContent = 'Sin acceso al micrófono. Habilitá el permiso en el navegador.'; return; }
+
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+    rec = new MediaRecorder(stream, mime ? {mimeType:mime, audioBitsPerSecond:96000} : undefined);
+    chunks = [];
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = save;
+    rec.start(1000); // 1s chunks: data survives interruptions
+
+    // level ring
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = ac.createAnalyser(); analyser.fftSize = 512;
+    ac.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Uint8Array(analyser.fftSize);
+    const loop = () => {
+      analyser.getByteTimeDomainData(buf);
+      let sum = 0; for (let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum += v*v; }
+      const rms = Math.sqrt(sum/buf.length);
+      $('lvl').setAttribute('r', 92 + Math.min(16, rms*140));
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch(e){}
+
+    recording = true; paused = false; t0 = Date.now(); tPaused = 0;
+    document.body.classList.add('rec');
+    $('reclbl').textContent = 'REC';
+    $('pausebtn').disabled = false; $('stopbtn').disabled = false;
+    $('status').innerHTML = 'Grabando <b>' + sel + '</b>. Dejá la pantalla encendida.';
+    tick = setInterval(() => { if(!paused) $('timer').textContent = fmt((Date.now()-t0-tPaused)/1000); }, 250);
+  }
+
+  function pause(){
+    if (!recording) return;
+    if (!paused){ rec.pause(); paused = true; pauseStart = Date.now(); $('pausebtn').textContent='Reanudar'; }
+    else { rec.resume(); paused = false; tPaused += Date.now()-pauseStart; $('pausebtn').textContent='Pausar'; }
+  }
+
+  function stop(){
+    if (!recording) return;
+    rec.stop();
+    rec.stream.getTracks().forEach(t => t.stop());
+    cancelAnimationFrame(raf); if (ac) ac.close();
+    clearInterval(tick); wakeLock?.release();
+    recording = false;
+    document.body.classList.remove('rec');
+    $('reclbl').textContent = 'GRABAR';
+    $('pausebtn').disabled = true; $('pausebtn').textContent='Pausar';
+    $('stopbtn').disabled = true;
+    $('lvl').setAttribute('r', 92);
+  }
+
+  async function save(){
+    const blob = new Blob(chunks, {type:'audio/webm'});
+    const name = `${sel}__rbq_${stamp()}.webm`;
+    const mins = $('timer').textContent;
+    const file = new File([blob], name, {type:'audio/webm'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      try {
+        $('status').innerHTML = 'Elegí <b>Mis Archivos → Nemdroid</b> para guardar.';
+        await navigator.share({files:[file], title:name});
+        $('status').innerHTML = 'Guardado: <b>' + name + '</b> (' + mins + '). Syncthing lo lleva a la PC.';
+        $('timer').textContent = '00:00';
+        return;
+      } catch(e) { /* cancelado: cae al download */ }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    $('status').innerHTML = 'Descargado: <b>' + name + '</b> (' + mins + '). Movelo a la carpeta Nemdroid.';
+    $('timer').textContent = '00:00';
+  }
+
+  $('recbtn').onclick = () => recording ? null : start();
+  $('pausebtn').onclick = pause;
+  $('stopbtn').onclick = () => { if (confirm('¿Detener y guardar la grabación?')) stop(); };
+
+  // avoid losing a session by accidental navigation
+  window.addEventListener('beforeunload', e => { if (recording){ e.preventDefault(); e.returnValue=''; } });
+})();
+</script>
+</body>
+</html>
