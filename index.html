@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0F2136">
+<title>Nemdroid</title>
+<!-- Nemdroid v4.2 — grabadora. Este archivo es público (GitHub Pages): no contiene ni debe
+     contener datos de pacientes. Los códigos y alias viven sólo en cada dispositivo. -->
+<style>
+  :root{--bg:#0F2136;--panel:#152D47;--accent:#5B9EC9;--ink:#E9F2F9;--muted:#7A93A8;--rec:#E25C6E;--warn:#C9A227;--note:#8FBF7A;
+        --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"Roboto Mono",Menlo,Consolas,monospace}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);display:flex;flex-direction:column;min-height:100vh;
+       padding:max(env(safe-area-inset-top),14px) 18px max(env(safe-area-inset-bottom),18px);user-select:none}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+  header h1{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  header h1 span{font-size:10px;color:var(--muted);letter-spacing:0}
+  header .st{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+  .aviso{border:1px solid var(--warn);color:#E6D59B;border-radius:9px;padding:9px 12px;font-size:12px;margin-bottom:10px;line-height:1.5}
+  .codes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .chip{border:1px solid #24415F;background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:14px;
+        padding:9px 14px;border-radius:9px;cursor:pointer}
+  .chip .al{font-family:var(--sans);font-weight:700;margin-right:6px}
+  .chip.sel{background:var(--accent);border-color:var(--accent);color:#0B1B2C}
+  .chip.edit{color:var(--muted);border-style:dashed}
+  .hint{font-size:12px;color:var(--muted);min-height:16px;margin-bottom:6px;line-height:1.5}
+  body.rec .hint{color:var(--ink)}
+  .panel{display:none;flex-direction:column;gap:8px;border:1px solid #24415F;border-radius:10px;padding:12px;margin-bottom:10px}
+  .fld{background:var(--panel);border:1px solid #24415F;color:var(--ink);font-family:var(--mono);font-size:14px;
+       padding:10px 12px;border-radius:8px;width:100%}
+  .sub{font-size:11px;color:var(--muted);line-height:1.5}
+  .rowl{display:flex;gap:8px;flex-wrap:wrap}
+  .item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1C3550}
+  .item .c{font-family:var(--mono);font-size:14px;min-width:46px}
+  .item .a{flex:1;font-weight:700;color:var(--accent);font-size:13px}
+  .item .nv{font-size:10px;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 5px}
+  .item button{background:none;border:none;color:var(--muted);font-size:13px;padding:4px 8px;cursor:pointer}
+  .item button.del{color:var(--rec);font-size:16px}
+  .card{border:1px solid var(--warn);border-radius:11px;padding:11px 12px;margin-bottom:10px;background:rgba(201,162,39,.07)}
+  .card.vivo{border-color:var(--rec);background:rgba(226,92,110,.08)}
+  .card.ok{border-color:#3C6B47;background:rgba(143,191,122,.06)}
+  .card .ct{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--warn);margin-bottom:4px}
+  .card.vivo .ct{color:var(--rec)}
+  .card.ok .ct{color:var(--note)}
+  .card .cd{font-size:13px;line-height:1.55;margin-bottom:9px}
+  .card .sub{margin-top:7px}
+  .mono{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:8px 0}
+  .ringwrap{position:relative;width:210px;height:210px;display:flex;align-items:center;justify-content:center}
+  svg.ring{position:absolute;inset:0;transform:rotate(-90deg);pointer-events:none}
+  .lvl{fill:none;stroke:var(--accent);stroke-width:3;opacity:.9}
+  .base{fill:none;stroke:#24415F;stroke-width:1.5}
+  #recbtn{width:158px;height:158px;border-radius:50%;border:none;cursor:pointer;background:var(--panel);color:var(--ink);
+          font-family:var(--sans);font-weight:600;font-size:16px;letter-spacing:.06em;display:flex;flex-direction:column;
+          align-items:center;justify-content:center;gap:6px;box-shadow:0 0 0 1px #24415F,0 10px 30px rgba(0,0,0,.35);text-align:center;padding:0 12px}
+  #recbtn:disabled{opacity:.45;font-size:12px}
+  #recbtn .dot{width:15px;height:15px;border-radius:50%;background:var(--rec)}
+  body.rec #recbtn{background:var(--rec);color:#fff;box-shadow:0 0 0 1px var(--rec),0 10px 34px rgba(226,92,110,.35)}
+  body.rec.nota #recbtn{background:var(--note);color:#0B1B2C}
+  body.rec #recbtn .dot{background:#fff;animation:blink 1.2s infinite}
+  body.rec .lvl{stroke:var(--rec)}
+  @keyframes blink{50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){body.rec #recbtn .dot{animation:none}}
+  #timer{font-family:var(--mono);font-size:40px;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+  body:not(.rec) #timer{color:var(--muted)}
+  #parte{font-size:11px;color:var(--muted);min-height:14px;margin-top:-12px}
+  .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .row.l{justify-content:flex-start;gap:8px}
+  .btn2{border:1px solid #24415F;background:transparent;color:var(--ink);font-family:var(--sans);font-weight:600;font-size:13px;
+        letter-spacing:.05em;padding:12px 20px;border-radius:11px;cursor:pointer}
+  .btn2:disabled{opacity:.3}
+  .btn2.sm{padding:9px 13px;font-size:12px}
+  .btn2.stop{border-color:var(--accent);color:var(--accent)}
+  .btn2.warn{border-color:var(--warn);color:var(--warn)}
+  .btn2.note{border-color:var(--note);color:var(--note)}
+  .btn2.del{border-color:transparent;color:var(--muted)}
+  .btn2.rojo{border-color:var(--rec);color:var(--rec)}
+  #ultimo{width:100%;max-width:420px}
+  details.rec48{margin-top:6px;font-size:12px;color:var(--muted)}
+  details.rec48 summary{cursor:pointer;padding:6px 0}
+  .fila{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #1C3550}
+  .fila .t{flex:1;min-width:150px;color:var(--ink);font-size:12px;line-height:1.45}
+  .fila button{background:none;border:1px solid #24415F;color:var(--muted);font-size:11px;padding:6px 9px;border-radius:8px;cursor:pointer}
+  footer{font-size:12px;color:var(--muted);text-align:center;line-height:1.6;min-height:34px;margin-top:12px}
+  footer b{color:var(--accent);font-weight:600}
+  .modal{position:fixed;inset:0;background:rgba(5,12,20,.84);display:none;align-items:center;justify-content:center;padding:16px;z-index:40}
+  .modal .caja{background:var(--bg);border:1px solid #24415F;border-radius:14px;padding:16px;width:100%;max-width:440px;
+               max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:11px}
+  .mtit{font-weight:700;font-size:15px}
+  #mtxt{font-size:13px;color:var(--ink);line-height:1.5}
+  .mlist{max-height:42vh;overflow-y:auto}
+  #negra{position:fixed;inset:0;background:#000;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #negratim{font-family:var(--mono);font-size:22px;color:#444;position:absolute}
+  #negra .sub{color:#333;position:absolute;bottom:40px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Nemdroid <span>v4.2</span></h1>
+  <span class="st" id="clock"></span>
+</header>
+
+<div id="tzwarn" class="aviso" style="display:none"></div>
+<div id="dbwarn" class="aviso" style="display:none"></div>
+<div id="pendientes"></div>
+
+<div class="codes" id="codes"></div>
+<div class="hint" id="hint"></div>
+
+<div id="codepanel" class="panel">
+  <div class="rowl">
+    <button class="btn2" id="nuevo" style="border-color:#5B9EC9;color:#5B9EC9">+ NUEVO PACIENTE</button>
+    <button class="btn2" id="cargar">ACTUALIZAR LISTA</button>
+    <input type="file" id="archivo" accept=".txt,text/plain" style="display:none">
+  </div>
+  <div class="sub" id="listinfo"></div>
+  <input id="codesearch" class="fld" placeholder="buscar código o alias…" style="font-family:var(--sans);font-size:13px">
+  <div id="codelist" style="max-height:230px;overflow-y:auto"></div>
+  <details class="sub"><summary>Agregar a mano un código que ya existe</summary>
+    <div class="rowl" style="margin-top:6px"><input id="addexist" class="fld" placeholder="p012" style="flex:1">
+    <button class="btn2" id="addbtn">AGREGAR</button></div></details>
+  <div class="sub">Alias = iniciales, sólo en este dispositivo. Nunca nombres. · Dispositivo: <b id="devname"></b>
+    <button class="btn2" id="devbtn" style="padding:3px 8px;font-size:11px">cambiar</button></div>
+</div>
+
+<div class="stage">
+  <div class="ringwrap">
+    <svg class="ring" viewBox="0 0 210 210"><circle class="base" cx="105" cy="105" r="98"/><circle class="lvl" id="lvl" cx="105" cy="105" r="84"/></svg>
+    <button id="recbtn"><span class="dot"></span><span id="reclbl">GRABAR</span></button>
+  </div>
+  <div id="timer">00:00</div>
+  <div id="parte"></div>
+  <div class="row">
+    <button class="btn2" id="pausebtn" disabled>Pausar</button>
+    <button class="btn2 stop" id="stopbtn" disabled>Detener y guardar</button>
+  </div>
+  <div class="row">
+    <button class="btn2 note" id="notabtn">SÓLO NOTA</button>
+    <button class="btn2" id="negrabtn" style="display:none">🌙 Pantalla negra</button>
+  </div>
+  <div id="ultimo"></div>
+</div>
+
+<details class="rec48" id="rec48" style="display:none"><summary id="rec48s"></summary><div id="rec48l"></div></details>
+
+<footer id="status">Cada grabación guarda <b>dos archivos</b> en Descargas (.webm y .json). Mové siempre los dos.</footer>
+
+<div id="modal" class="modal"><div class="caja">
+  <div class="mtit" id="mtit"></div><div id="mtxt"></div><div id="mpick"></div><div class="row l" id="mbot"></div>
+</div></div>
+<div id="negra"><div id="negratim">00:00</div><div class="sub">Sigue grabando · tocá dos veces para volver</div></div>
+
+<script>
+(() => {
+  'use strict';
+  const VERSION = '4.2';
+  const BA = 'America/Argentina/Buenos_Aires';
+  const K = { codes: 'nem_codes', lista: 'nem_lista', dev: 'nem_dispositivo', usados: 'nem_nombres', orden: 'nem_orden' };
+  const CODE_RE = /^p\d{3}$/;
+  const ALIAS_RE = /^[A-ZÁÉÍÓÚÑÜ]{1,4}$/;
+  const RETENER_H = 48;        // horas que una grabación YA guardada queda también en el teléfono
+  const MAX_GUARDADAS = 40;    // y como mucho tantas (las más viejas se borran del teléfono, nunca las sin guardar)
+  const CONTINUAR_MIN = 45;    // minutos después de un corte en los que GRABAR pregunta si es la continuación
+  const LOCK = 'nemdroid-rec-';
+  const $ = id => document.getElementById(id);
+  const status = html => { $('status').innerHTML = html; };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  window.onerror = (m, s, l) => status('⚠ Error: ' + m + ' (línea ' + l + ')');
+  window.addEventListener('unhandledrejection', e => status('⚠ Error: ' + ((e.reason && e.reason.message) || e.reason)));
+
+  const leer = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v === null ? def : v; } catch (e) { return def; } };
+  const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nav = (typeof navigator !== 'undefined' && navigator) || {};
+
+  // ---------- códigos (sólo códigos y alias de iniciales; nunca nombres) ----------
+  function normalizarCodigo(c) {
+    const m = String(c || '').trim().toLowerCase().match(/^(?:p|pac)0*(\d{1,3})$/);
+    return m ? 'p' + m[1].padStart(3, '0') : null;
+  }
+  function cargarCodigos() {
+    const v = leer(K.codes, null);
+    if (Array.isArray(v)) return v.filter(x => x && CODE_RE.test(x.c));
+    const out = [];                                   // migración desde v3.3 (rbq_codes)
+    for (const c of leer('rbq_codes', [])) {
+      const n = normalizarCodigo(c);
+      if (n && !out.some(x => x.c === n)) out.push({ c: n, alias: '', nuevo: false });
+    }
+    return out;
+  }
+  let codigos = cargarCodigos();
+  let lista = leer(K.lista, { generado: null, siguiente: null, cargada: null });
+  let orden = leer(K.orden, []);
+  let dev = leer(K.dev, null);
+  if (!dev || !dev.id) { dev = { id: 'dev-' + Math.random().toString(16).slice(2, 6), nombre: '' }; guardar(K.dev, dev); }
+  const guardarCodigos = () => guardar(K.codes, codigos);
+  const obj = c => codigos.find(x => x.c === c);
+  let sel = null;
+
+  function parsearLista(texto) {
+    const res = { codes: [], siguiente: null, generado: null, ajenas: 0 };
+    for (const raw of String(texto).split(/\r?\n/)) {
+      const l = raw.trim();
+      if (!l) continue;
+      if (l.startsWith('#')) { const g = l.match(/generado:\s*(.+)$/i); if (g) res.generado = g[1].trim(); continue; }
+      const s = l.match(/^siguiente:\s*(p\d{3})$/i);
+      if (s) { res.siguiente = s[1].toLowerCase(); continue; }
+      const c = normalizarCodigo(l);
+      if (c) res.codes.push(c); else res.ajenas++;
+    }
+    return res;
+  }
+  function siguienteLibre() {
+    let n = 0;
+    for (const x of codigos) n = Math.max(n, parseInt(x.c.slice(1), 10));
+    n += 1;
+    if (lista.siguiente) n = Math.max(n, parseInt(lista.siguiente.slice(1), 10));
+    return 'p' + String(n).padStart(3, '0');
+  }
+  function diasDesdeLista() {
+    if (!lista.cargada) return null;
+    return Math.floor((Date.now() - Date.parse(lista.cargada)) / 86400000);
+  }
+  function etiqueta(o) { return (o.alias ? '<span class="al">' + esc(o.alias) + '</span>' : '') + esc(o.c); }
+  function quien(c) {
+    if (!c) return 'sin paciente';
+    const o = obj(c);
+    return (o && o.alias ? esc(o.alias) + ' · ' : '') + esc(c);
+  }
+  function ordenados() {
+    return [...codigos].sort((a, b) => {
+      const ia = orden.indexOf(a.c), ib = orden.indexOf(b.c);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.c.localeCompare(b.c);
+    });
+  }
+  function elegir(c) {
+    sel = c;
+    if (c) { orden = [c, ...orden.filter(x => x !== c)].slice(0, 200); guardar(K.orden, orden); }
+    renderCodes(); pintarHint();
+  }
+  function pintarHint() {
+    const a = actual;
+    if (a) {
+      $('hint').innerHTML = a.code
+        ? '● Grabando para: <b>' + quien(a.code) + '</b> — si no es, tocá el correcto.'
+        : '● Grabando <b>sin paciente</b>: lo elegís al detener (o tocá uno ahora).';
+      return;
+    }
+    const o = sel && obj(sel);
+    $('hint').innerHTML = sel
+      ? 'Paciente: <b>' + quien(sel) + '</b>' + (o && o.nuevo ? ' (paciente nuevo)' : '')
+      : 'Elegí el paciente, o grabá y elegilo al final.';
+  }
+  function renderCodes() {
+    const box = $('codes'); box.innerHTML = '';
+    const marcado = actual ? actual.code : sel;
+    ordenados().slice(0, 12).forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (o.c === marcado ? ' sel' : '');
+      b.innerHTML = etiqueta(o);
+      b.onclick = () => tocarChip(o.c);
+      box.appendChild(b);
+    });
+    const ed = document.createElement('button');
+    ed.className = 'chip edit'; ed.textContent = '± pacientes';
+    ed.onclick = togglePanel;
+    box.appendChild(ed);
+  }
+  async function tocarChip(c) {
+    const a = actual;
+    if (!a) { elegir(c); return; }
+    if (a.code === c) return;
+    const r = await modal({ titulo: 'Cambiar el paciente de esta grabación',
+      texto: '¿La grabación en curso es de <b>' + quien(c) + '</b>?' + (a.code ? '<br>(ahora dice ' + quien(a.code) + ')' : ''),
+      botones: [{ t: 'SÍ, ES DE ' + c, v: 'si', cls: 'stop' }, { t: 'no', v: null }] });
+    if (!r || actual !== a) return;
+    await cambiarPaciente(a.cadena, c);
+    elegir(c);
+  }
+  function togglePanel() {
+    const p = $('codepanel');
+    p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
+    renderLista();
+  }
+  function renderLista() {
+    const d = diasDesdeLista();
+    $('listinfo').textContent = d === null
+      ? 'La lista de la PC todavía no se cargó en este dispositivo.'
+      : 'Lista de la PC cargada hace ' + (d === 0 ? 'menos de un día' : d + ' día(s)') +
+        (lista.siguiente ? ' · próximo código libre según la PC: ' + lista.siguiente : '');
+    $('devname').textContent = dev.nombre || dev.id;
+    const q = ($('codesearch').value || '').trim().toLowerCase();
+    const box = $('codelist'); box.innerHTML = '';
+    const filas = codigos.filter(o => !q || o.c.includes(q) || (o.alias || '').toLowerCase().includes(q))
+                         .sort((a, b) => a.c.localeCompare(b.c));
+    filas.forEach(o => {
+      const row = document.createElement('div'); row.className = 'item';
+      row.innerHTML = '<span class="c">' + esc(o.c) + '</span><span class="a">' + esc(o.alias || '') + '</span>' +
+                      (o.nuevo ? '<span class="nv">nuevo</span>' : '');
+      const al = document.createElement('button'); al.textContent = 'alias';
+      al.onclick = () => { pedirAlias(o); renderCodes(); renderLista(); pintarHint(); };
+      const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕';
+      del.onclick = () => {
+        if (!confirm('¿Sacar ' + o.c + ' de este dispositivo? (No borra nada en la PC.)')) return;
+        codigos = codigos.filter(x => x.c !== o.c); if (sel === o.c) sel = null;
+        guardarCodigos(); renderCodes(); renderLista(); pintarHint();
+      };
+      const pick = document.createElement('button'); pick.textContent = 'elegir';
+      pick.onclick = () => { $('codepanel').style.display = 'none'; tocarChip(o.c); };
+      row.append(al, pick, del); box.appendChild(row);
+    });
+    if (!filas.length) box.innerHTML = '<span class="sub">Sin pacientes. Tocá ACTUALIZAR LISTA o + NUEVO PACIENTE.</span>';
+  }
+  function pedirAlias(o) {
+    const v = prompt('Alias para ' + o.c + ': SÓLO iniciales (hasta 4 letras). Nunca un nombre.\nVacío = sin alias.', o.alias || '');
+    if (v === null) return;
+    const a = v.trim().toUpperCase().replace(/[\s.]/g, '');
+    if (a && !ALIAS_RE.test(a)) { alert('Sólo iniciales: hasta 4 letras, sin números ni espacios.'); return; }
+    o.alias = a; guardarCodigos();
+  }
+  function crearPaciente() {                          // devuelve el código nuevo, o null
+    const d = diasDesdeLista();
+    if (d === null || d > 7) {
+      if (!confirm((d === null ? 'Todavía no cargaste la lista de la PC.' : 'La lista de la PC tiene ' + d + ' días.') +
+                   '\nSi el otro dispositivo creó un paciente, el código podría repetirse (la PC lo frena).\n\n¿Crear igual?')) return null;
+    }
+    const c = siguienteLibre();
+    if (!confirm('Paciente nuevo: ' + c + '.\nEl nombre real se completa después en la PC.\n\n¿Crear?')) return null;
+    const o = { c, alias: '', nuevo: true };
+    codigos.push(o); guardarCodigos();
+    pedirAlias(o);
+    renderCodes(); renderLista();
+    return c;
+  }
+  async function nuevoPaciente() { const c = crearPaciente(); if (c) await tocarChip(c); }
+  function agregarExistente() {
+    const c = normalizarCodigo($('addexist').value);
+    if (!c) { alert('Código inválido: tiene que ser p seguido de números (p012).'); return; }
+    if (!obj(c)) { codigos.push({ c, alias: '', nuevo: false }); guardarCodigos(); }
+    $('addexist').value = ''; renderCodes(); renderLista();
+  }
+  async function cargarArchivo(file) {
+    if (!file) return;
+    const r = parsearLista(await file.text());
+    if (!r.codes.length || r.ajenas > 0) {
+      alert('Ese archivo no es la lista de códigos de Nemdroid (codigos__rbq_.txt).'); return;
+    }
+    let nuevos = 0;
+    for (const c of r.codes) {
+      const o = obj(c);
+      if (!o) { codigos.push({ c, alias: '', nuevo: false }); nuevos++; } else o.nuevo = false;
+    }
+    lista = { generado: r.generado, siguiente: r.siguiente, cargada: new Date().toISOString() };
+    guardar(K.lista, lista); guardarCodigos(); renderCodes(); renderLista();
+    status('✅ Lista cargada: ' + r.codes.length + ' código(s), ' + nuevos + ' nuevo(s) en este dispositivo.');
+  }
+
+  // ---------- hora: el nombre usa siempre la hora de Buenos Aires ----------
+  const fmtBA = new Intl.DateTimeFormat('en-CA', { timeZone: BA, year: 'numeric', month: '2-digit', day: '2-digit',
+                                                    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  function partesBA(d) { const p = {}; for (const x of fmtBA.formatToParts(d)) p[x.type] = x.value; return p; }
+  const stampBA = d => { const p = partesBA(d); return `${p.year}-${p.month}-${p.day}_${p.hour}${p.minute}`; };
+  const isoBA = d => { const p = partesBA(d); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}-03:00`; };
+  const horaBA = x => { const p = partesBA(new Date(x)); return p.hour + ':' + p.minute; };
+  const zonaDispositivo = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'desconocida'; } catch (e) { return 'desconocida'; } };
+  const esArgentina = z => /^America\/(Argentina\/|Buenos_Aires$)/.test(z);
+  function nombreNuevo(code, d) {
+    const usados = leer(K.usados, []);
+    // «__rbq_» es la marca que el filtro de Syncthing deja pasar: sin ella la grabación
+    // se queda en el teléfono. No sacarla.
+    const base = `${code}__rbq_${stampBA(d)}`;
+    let nombre = base, k = 2;
+    while (usados.includes(nombre)) nombre = `${base}-${k++}`;
+    usados.push(nombre); guardar(K.usados, usados.slice(-300));
+    return nombre;
+  }
+  function reloj() {
+    const z = zonaDispositivo();
+    const ba = new Date().toLocaleTimeString('es-AR', { timeZone: BA, hour: '2-digit', minute: '2-digit' });
+    $('clock').textContent = esArgentina(z) ? ba : ba + ' BA · ' + z;
+  }
+  const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  function fmtDur(s) {
+    s = Math.round(s);
+    if (s < 60) return s + ' s';
+    const m = Math.round(s / 60);
+    return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min';
+  }
+
+  // ---------- grabaciones guardadas en el teléfono (IndexedDB) ----------
+  // Cada grabación es un registro en «grabaciones» y sus trozos de 1 s en «partes».
+  // Nada se borra hasta que la grabación se guardó Y pasaron 48 h (o lo descartás vos).
+  const DB = 'nemdroid', DBV = 3;
+  let conn = null, abriendo = null;
+  const mem = new Map();            // sólo si el teléfono no deja usar IndexedDB: {meta, blobs}
+  const respaldo = new Map();       // copia en memoria de lo que graba esta ventana, hasta guardarlo
+  function avisoDB(txt) { const w = $('dbwarn'); w.style.display = txt ? 'block' : 'none'; w.textContent = txt || ''; }
+  function abrirDB() {
+    if (conn) return Promise.resolve(conn);
+    if (abriendo) return abriendo;
+    abriendo = new Promise(res => {
+      let r;
+      try { r = indexedDB.open(DB, DBV); } catch (e) { abriendo = null; res(null); return; }
+      const espera = setTimeout(() => avisoDB('⚠ Hay otra ventana de Nemdroid abierta con la versión anterior: cerrala ' +
+        '(botón de apps recientes → deslizala hacia arriba). Mientras tanto se graba igual, pero sin respaldo.'), 4000);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('grabaciones')) d.createObjectStore('grabaciones', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('partes')) d.createObjectStore('partes', { keyPath: ['rec', 'i'] });
+      };
+      r.onsuccess = () => {
+        clearTimeout(espera); avisoDB('');
+        conn = r.result;
+        conn.onversionchange = () => { try { conn.close(); } catch (e) {} conn = null; abriendo = null; };
+        conn.onclose = () => { conn = null; abriendo = null; };
+        res(conn);
+      };
+      r.onerror = () => { clearTimeout(espera); abriendo = null; res(null); };
+    });
+    return abriendo;
+  }
+  function tx(stores, modo, fn) {
+    return abrirDB().then(d => new Promise(res => {
+      if (!d) { res(null); return; }
+      const box = {};
+      let t;
+      try { t = d.transaction(stores, modo); fn(t, box); } catch (e) { res(null); return; }
+      t.oncomplete = () => res(box.v === undefined ? true : box.v);
+      t.onerror = t.onabort = () => res(null);
+    }));
+  }
+  const rango = id => IDBKeyRange.bound([id, 0], [id, Infinity]);
+  async function todas() {
+    const v = await tx('grabaciones', 'readonly', (t, b) => { const r = t.objectStore('grabaciones').getAll(); r.onsuccess = () => { b.v = r.result; }; });
+    return (Array.isArray(v) ? v : []).concat([...mem.values()].map(x => x.meta));
+  }
+  async function una(id) {
+    if (mem.has(id)) return mem.get(id).meta;
+    const v = await tx('grabaciones', 'readonly', (t, b) => { const r = t.objectStore('grabaciones').get(id); r.onsuccess = () => { b.v = r.result || null; }; });
+    return v || null;
+  }
+  const poner = m => tx('grabaciones', 'readwrite', t => { t.objectStore('grabaciones').put(m); });
+  function modificar(id, fn) {                        // lee y escribe en la misma transacción (sin carreras entre ventanas)
+    if (mem.has(id)) { const m = mem.get(id).meta; fn(m); return Promise.resolve(m); }
+    return tx('grabaciones', 'readwrite', (t, b) => {
+      const s = t.objectStore('grabaciones'); const r = s.get(id);
+      r.onsuccess = () => { const m = r.result; if (!m) { b.v = null; return; } if (fn(m) !== false) s.put(m); b.v = m; };
+    });
+  }
+  async function trozosDe(id) {
+    if (mem.has(id)) return mem.get(id).blobs.filter(Boolean);
+    const v = await tx('partes', 'readonly', (t, b) => { const r = t.objectStore('partes').getAll(rango(id)); r.onsuccess = () => { b.v = r.result; }; });
+    return (Array.isArray(v) ? v : []).map(x => x.blob);
+  }
+  async function blobsDe(id) {
+    const db = await trozosDe(id), r = respaldo.get(id);
+    return (r && r.length > db.length) ? r.slice() : db;
+  }
+  function borrar(id) {
+    respaldo.delete(id);
+    if (mem.delete(id)) return Promise.resolve(true);
+    return tx(['grabaciones', 'partes'], 'readwrite', t => {
+      t.objectStore('partes').delete(rango(id));
+      t.objectStore('grabaciones').delete(id);
+    });
+  }
+  async function migrarVieja() {                     // v4.1 guardaba una sola grabación en «chunks»/«meta»
+    const d = await abrirDB();
+    if (!d || !d.objectStoreNames.contains('chunks')) return;
+    const viejo = await tx(['chunks', 'meta'].filter(s => d.objectStoreNames.contains(s)), 'readonly', (t, b) => {
+      b.v = { blobs: [], meta: null };
+      const r = t.objectStore('chunks').getAll(); r.onsuccess = () => { b.v.blobs = r.result || []; };
+      if (d.objectStoreNames.contains('meta')) { const g = t.objectStore('meta').get('actual'); g.onsuccess = () => { b.v.meta = g.result || null; }; }
+    });
+    if (!viejo || !viejo.blobs.length) return;
+    const vm = viejo.meta || {};
+    const id = nuevoId();
+    const ini = vm.inicio ? new Date(vm.inicio) : new Date(Date.now() - viejo.blobs.length * 1000);
+    const m = metaNueva({ id, code: CODE_RE.test(vm.code || '') ? vm.code : null, soloNota: !!vm.soloNota, inicio: ini });
+    Object.assign(m, { estado: 'detenida', interrumpida: true, motivo: 'quedó de la versión anterior sin guardar',
+                       nombre: /__rbq_/.test(vm.nombre || '') ? vm.nombre : null, zona: vm.zona || m.zona,
+                       pausasMs: vm.pausasMs || 0, n: viejo.blobs.length, ultimo: ini.getTime() + viejo.blobs.length * 1000,
+                       bytes: viejo.blobs.reduce((s, b) => s + (b.size || 0), 0), migrada: true });
+    m.fin = new Date(m.ultimo).toISOString();
+    const ok = await tx(['grabaciones', 'partes'], 'readwrite', t => {
+      viejo.blobs.forEach((blob, i) => t.objectStore('partes').put({ rec: id, i, t: 0, blob }));
+      t.objectStore('grabaciones').put(m);
+    });
+    if (ok && (await trozosDe(id)).length === viejo.blobs.length) {
+      await tx(['chunks', 'meta'].filter(s => d.objectStoreNames.contains(s)), 'readwrite', t => {
+        for (const s of t.objectStoreNames) t.objectStore(s).clear();
+      });
+    }
+  }
+  function nuevoId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function metaNueva({ id, code = null, soloNota = false, inicio = new Date(), base = null }) {
+    return { id, cadena: base ? base.cadena : id, parte: base ? (base.parte || 1) + 1 : 1, padre: base ? base.id : null,
+             code: base ? base.code : code, soloNota: base ? !!base.soloNota : !!soloNota, nuevo: false,
+             inicio: inicio.toISOString(), zona: zonaDispositivo(), dispositivo: dev.nombre || dev.id,
+             estado: 'grabando', interrumpida: false, motivo: null, fin: null, ultimo: Date.now(), n: 0, bytes: 0,
+             pausasMs: 0, mudoMs: 0, mudos: [], nombre: null, guardadaEn: null, codigoGuardado: null, correcciones: [] };
+  }
+  const finMs = m => m.fin ? Date.parse(m.fin) : (m.ultimo || Date.parse(m.inicio));
+  const duracionDe = m => Math.max(0, (finMs(m) - Date.parse(m.inicio) - (m.pausasMs || 0)) / 1000);
+  function agrupar(ms) {
+    const cad = new Map();
+    for (const m of ms) { if (!cad.has(m.cadena)) cad.set(m.cadena, []); cad.get(m.cadena).push(m); }
+    for (const ps of cad.values()) ps.sort((a, b) => (a.parte || 1) - (b.parte || 1));
+    return cad;
+  }
+  async function cadenaDe(cadena) { return (await todas()).filter(m => m.cadena === cadena).sort((a, b) => (a.parte || 1) - (b.parte || 1)); }
+  function archivoPrevio(ps, id) {                  // nombre del archivo del que sigue esta parte
+    let p = ps.find(x => x.id === id);
+    while (p && (p.vacia || !p.nombre)) p = p.padre ? ps.find(x => x.id === p.padre) : null;
+    return p ? p.nombre : null;
+  }
+  function codigoDe(ps) { for (let i = ps.length - 1; i >= 0; i--) if (ps[i].code) return ps[i].code; return null; }
+  const marcarCortada = (id, motivo) => modificar(id, x => {
+    if (x.estado !== 'grabando') return false;
+    x.estado = 'detenida'; x.interrumpida = true; x.motivo = x.motivo || motivo;
+    x.fin = new Date(x.ultimo || Date.parse(x.inicio)).toISOString();
+  });
+
+  // ---------- varias ventanas de la app: sólo una graba; las otras la ven y la pueden detener ----------
+  const canal = (typeof BroadcastChannel === 'function') ? new BroadcastChannel('nemdroid') : null;
+  const avisar = msg => { try { canal && canal.postMessage(msg); } catch (e) {} };
+  const noticias = new Map();       // id → {seg, at, pausado} de la grabación que corre en otra ventana
+  async function locksTomados() {
+    if (!nav.locks || !nav.locks.query) return null;
+    try { const q = await nav.locks.query(); return new Set((q.held || []).map(l => l.name)); } catch (e) { return null; }
+  }
+  function tomarLock(id) {
+    if (!nav.locks || !nav.locks.request) return Promise.resolve(null);
+    return new Promise(ok => {
+      nav.locks.request(LOCK + id, () => new Promise(soltar => ok(soltar))).catch(() => ok(null));
+    });
+  }
+  const vigiladas = new Set();
+  function vigilar(id) {           // se entera cuando la ventana que graba termina o Android la cierra
+    if (!nav.locks || !nav.locks.request || vigiladas.has(id)) return;
+    vigiladas.add(id);
+    nav.locks.request(LOCK + id, async () => {
+      vigiladas.delete(id);
+      const m = await una(id);
+      if (m && m.estado === 'grabando') {
+        await marcarCortada(id, 'Android cerró la ventana que grababa');
+        avisar({ t: 'cambio' });
+        vibrar();
+        status('⚠ <b>La grabación de la otra ventana se cortó.</b> No se perdió: tocá <b>SEGUIR GRABANDO</b> arriba.');
+      }
+      render();
+    }).catch(() => vigiladas.delete(id));
+  }
+  async function viva(m, held) {
+    if (held === undefined) held = await locksTomados();
+    return held ? held.has(LOCK + m.id) : (Date.now() - (m.ultimo || 0) < 30000);
+  }
+  async function grabandoEnOtra() {
+    const held = await locksTomados();
+    for (const m of await todas()) {
+      if (m.estado !== 'grabando' || (actual && actual.id === m.id) || m.id === iniciandoId || mem.has(m.id)) continue;
+      if (await viva(m, held)) return m;
+      await marcarCortada(m.id, 'Android cerró la app mientras grababa');
+    }
+    return null;
+  }
+  function pedirDetencion(id) {
+    return new Promise(res => {
+      if (!canal) { res(false); return; }
+      let to = null;
+      const f = ev => { const d = ev.data || {}; if (d.t === 'detenida' && d.id === id) fin(true); };
+      const fin = v => { clearTimeout(to); canal.removeEventListener('message', f); res(v); };
+      to = setTimeout(() => fin(false), 6000);
+      canal.addEventListener('message', f);
+      avisar({ t: 'detener', id });
+    });
+  }
+  async function forzarDetencion(m) {
+    const r = await modal({ titulo: 'La otra ventana no responde',
+      texto: 'Lo grabado hasta ahora está en el teléfono. ¿Lo cierro desde acá? (Si esa ventana sigue grabando, se detiene.)',
+      botones: [{ t: 'SÍ', v: 'si', cls: 'stop' }, { t: 'no', v: null }] });
+    if (!r) return false;
+    await modificar(m.id, x => { if (x.estado !== 'grabando') return false; x.estado = 'detenida'; x.fin = new Date(x.ultimo || Date.now()).toISOString(); });
+    avisar({ t: 'cambio' });
+    return true;
+  }
+  async function detenerRemota(m) {
+    status('Deteniendo la grabación de la otra ventana…');
+    if (!(await pedirDetencion(m.id)) && !(await forzarDetencion(m))) { status(''); return; }
+    await guardarCadena(m.cadena, {});
+  }
+  async function traerAca(m) {
+    status('Paso la grabación a esta ventana…');
+    if (!(await pedirDetencion(m.id)) && !(await forzarDetencion(m))) { status(''); return; }
+    await empezar({ padre: m.id });
+  }
+  if (canal) canal.addEventListener('message', ev => {
+    const d = ev.data || {};
+    const a = actual;
+    if (d.t === 'detener') { if (a && a.id === d.id) detener(a, 'remoto'); return; }
+    if (d.t === 'estado') { noticias.set(d.id, { seg: d.seg, at: Date.now(), pausado: d.pausado }); pintarVivas(); if (!$('vivo-' + d.id)) render(); return; }
+    if (d.t === 'paciente' && a && a.cadena === d.cadena) { a.code = d.code; renderCodes(); pintarHint(); tituloGrabando(); }
+    render();
+  });
+
+  // ---------- grabación ----------
+  let actual = null, iniciando = false, iniciandoId = null, wakeLock = null, wlIntento = 0;
+  const segundos = a => (Date.now() - a.t0 - a.tPausa - (a.pausado ? Date.now() - a.inicioPausa : 0)) / 1000;
+  async function pedirWakeLock() {
+    if (!actual || wakeLock || !nav.wakeLock || document.visibilityState !== 'visible' || Date.now() - wlIntento < 8000) return;
+    wlIntento = Date.now();
+    try { wakeLock = await nav.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { wakeLock = null; }
+  }
+  function soltarWakeLock() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
+  function vibrar() { try { nav.vibrate && nav.vibrate([400, 150, 400]); } catch (e) {} }
+
+  async function cortadaReciente() {
+    let mejor = null;
+    for (const ps of agrupar(await todas()).values()) {
+      const u = ps[ps.length - 1];
+      if (u.estado === 'grabando' || !u.interrumpida || u.soloNota) continue;
+      const f = finMs(u), c = codigoDe(ps);
+      if (Date.now() - f > CONTINUAR_MIN * 60000 || (sel && c && sel !== c)) continue;
+      if (!mejor || f > mejor.finMs) mejor = { cadena: u.cadena, code: c, ultima: u, finMs: f };
+    }
+    return mejor;
+  }
+
+  async function empezar({ soloNota = false, padre = null } = {}) {
+    if (actual || iniciando) return;
+    if (!window.isSecureContext) { status('⚠ El micrófono requiere HTTPS.'); return; }
+    if (!nav.mediaDevices || !nav.mediaDevices.getUserMedia || !window.MediaRecorder) { status('⚠ Este navegador no puede grabar.'); return; }
+    iniciando = true;
+    let id = null, soltar = null, stream = null, escrita = false;
+    try {
+      if (await grabandoEnOtra()) {
+        status('⚠ Ya hay una grabación en curso en otra ventana de Nemdroid (arriba): detenela o pasala a esta ventana.');
+        render(); return;
+      }
+      let base = padre ? await una(padre) : null;
+      if (!padre && !soloNota) {
+        const p = await cortadaReciente();
+        if (p) {
+          const r = await modal({ titulo: 'La grabación anterior se cortó',
+            texto: 'La grabación de <b>' + quien(p.code) + '</b> se cortó a las ' + horaBA(p.finMs) +
+                   '.<br>¿Esto es la continuación de esa sesión? (La PC une las partes en una sola sesión.)',
+            botones: [{ t: 'SÍ, SEGUIR ESA', v: 'seguir', cls: 'warn' }, { t: 'NO, ES OTRA', v: 'nueva' }, { t: 'cancelar', v: null }] });
+          if (!r) return;
+          if (r.v === 'seguir') base = p.ultima;
+          else if (p.ultima.estado === 'detenida' && p.code) guardarCadena(p.cadena, { pedir: false });
+        }
+      }
+      if (soloNota && !confirm('SÓLO NOTA (ausencia o nota sin sesión)' + (sel ? ' para ' + sel : '') +
+                               '.\n\n¿Cortaste la llamada / salió el paciente?')) return;
+      try {
+        stream = await nav.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+      } catch (e) {
+        status('⚠ Micrófono: ' + e.name + (e.name === 'NotAllowedError' ? ' — permiso denegado.' : '')); return;
+      }
+      const hayDB = !!(await Promise.race([abrirDB(), sleep(1500).then(() => null)]));
+      id = nuevoId(); iniciandoId = id;
+      const m = metaNueva({ id, code: sel, soloNota, base });
+      const previas = base ? await cadenaDe(base.cadena) : [];
+      if (hayDB) { soltar = await tomarLock(id); escrita = !!(await poner(m)); }
+      if (!escrita) mem.set(id, { meta: m, blobs: [] });
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 96000 } : undefined);
+      const track = stream.getAudioTracks()[0] || null;
+      const a = { id, cadena: m.cadena, parte: m.parte, code: m.code, soloNota: m.soloNota, rec, stream, track, soltar,
+                  i: 0, cola: Promise.resolve(), memoria: [], t0: Date.now(), tPausa: 0, pausado: false, inicioPausa: 0,
+                  ultimoTrozo: Date.now(), gracia: 0, offsetS: previas.reduce((s, x) => s + duracionDe(x), 0),
+                  mudoMs: 0, mudos: [], mudoDesde: 0, motivo: null, motivoFin: null, terminando: false, finalizado: false };
+      respaldo.set(id, a.memoria);
+      rec.ondataavailable = e => { if (e.data && e.data.size) encolar(a, e.data); };
+      rec.onstop = () => alTerminar(a);
+      rec.onerror = ev => { a.motivo = 'error del grabador' + (ev && ev.error && ev.error.name ? ' (' + ev.error.name + ')' : ''); };
+      if (track) {
+        track.addEventListener('ended', () => { if (!a.terminando) { a.motivo = a.motivo || 'el micrófono se cerró (Android u otra app)'; detener(a, 'corte'); } });
+        track.addEventListener('mute', () => { if (!a.mudoDesde) a.mudoDesde = Date.now(); });
+        track.addEventListener('unmute', () => cerrarMudo(a));
+      }
+      rec.start(1000);
+      actual = a; iniciandoId = null;
+      try {
+        a.ac = new (window.AudioContext || window.webkitAudioContext)();
+        const an = a.ac.createAnalyser(); an.fftSize = 512;
+        a.ac.createMediaStreamSource(stream).connect(an);
+        const buf = new Uint8Array(an.fftSize);
+        const loop = () => {
+          if (actual !== a) return;
+          an.getByteTimeDomainData(buf);
+          let s = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; s += v * v; }
+          $('lvl').setAttribute('r', 84 + Math.min(14, Math.sqrt(s / buf.length) * 130));
+          a.raf = requestAnimationFrame(loop);
+        };
+        loop();
+      } catch (e) {}
+      a.tick = setInterval(() => tic(a), 500);
+      uiGrabando(); pedirWakeLock();
+      try { nav.storage && nav.storage.persist && nav.storage.persist(); } catch (e) {}
+      const zona = zonaDispositivo();
+      if (!esArgentina(zona)) {
+        $('tzwarn').style.display = 'block';
+        $('tzwarn').textContent = '⚠ Este dispositivo está en otra zona horaria (' + zona +
+          '). El archivo se nombra igual con la hora de Buenos Aires; la zona real queda registrada.';
+      }
+      if (!escrita) status('⚠ Grabando sin respaldo en el teléfono (el almacenamiento no respondió). No cierres esta ventana.');
+      if (base && m.code && previas.some(x => x.estado === 'detenida')) guardarCadena(m.cadena, { pedir: false });
+      render();
+    } catch (e) {
+      status('⚠ Error al iniciar: ' + esc(e.message || e));
+      try { stream && stream.getTracks().forEach(x => x.stop()); } catch (_) {}
+      if (id && !actual) { await borrar(id); if (soltar) soltar(); }
+    } finally { iniciando = false; iniciandoId = null; }
+  }
+  function encolar(a, blob) {
+    const i = a.i++, t = Date.now();
+    a.memoria.push(blob);
+    a.ultimoTrozo = t;
+    a.cola = a.cola.then(() => guardarTrozo(a, i, blob, t)).then(r => {
+      if (r === false && !a.terminando) detener(a, 'ajena');        // otra ventana la cerró
+    });
+    avisar({ t: 'estado', id: a.id, cadena: a.cadena, seg: a.offsetS + segundos(a), pausado: a.pausado });
+  }
+  function guardarTrozo(a, i, blob, t) {
+    const x = mem.get(a.id);
+    if (x) { x.blobs[i] = blob; Object.assign(x.meta, { n: i + 1, ultimo: t, bytes: (x.meta.bytes || 0) + blob.size }); return Promise.resolve(true); }
+    return tx(['grabaciones', 'partes'], 'readwrite', (tr, b) => {
+      const sg = tr.objectStore('grabaciones'), g = sg.get(a.id);
+      g.onsuccess = () => {
+        const m = g.result;
+        if (!m || m.estado !== 'grabando') { b.v = false; return; }
+        tr.objectStore('partes').put({ rec: a.id, i, t, blob });
+        m.n = Math.max(m.n || 0, i + 1); m.bytes = (m.bytes || 0) + blob.size; m.ultimo = t;
+        m.pausasMs = a.tPausa; m.mudoMs = a.mudoMs; m.mudos = a.mudos;
+        sg.put(m); b.v = true;
+      };
+    });
+  }
+  function cerrarMudo(a) {
+    if (!a.mudoDesde) return;
+    const d = Date.now() - a.mudoDesde, s0 = Math.max(0, Math.round((a.mudoDesde - a.t0 - a.tPausa) / 1000));
+    a.mudoDesde = 0; a.mudoMs += d; a.mudos.push([s0, s0 + Math.round(d / 1000)]);
+    if (d > 5000 && actual === a) status('⚠ El micrófono estuvo ' + fmtDur(d / 1000) + ' sin captar (otra app lo tomó: ¿una llamada?). Ya volvió.');
+  }
+  function tic(a) {
+    if (actual !== a) return;
+    const s = a.offsetS + segundos(a);
+    $('timer').textContent = fmt(s);
+    if (negra) $('negratim').textContent = fmt(s);
+    if (document.visibilityState !== 'visible' || a.terminando) return;
+    pedirWakeLock();
+    if (!a.pausado && Date.now() > a.gracia && Date.now() - a.ultimoTrozo > 9000 && !a.verificando) {
+      a.verificando = true;                            // 9 s sin audio: le pido datos y si no llegan, es un corte
+      try { a.rec.requestData(); } catch (e) {}
+      setTimeout(() => {
+        a.verificando = false;
+        if (actual === a && !a.pausado && !a.terminando && Date.now() - a.ultimoTrozo > 11000) {
+          a.motivo = a.motivo || 'el teléfono dejó de mandarle audio a la app'; detener(a, 'corte');
+        }
+      }, 2500);
+    }
+  }
+  function chequear(a) {                              // al volver a la app
+    if (!a || a.terminando) return;
+    a.gracia = Date.now() + 4000;
+    if (a.rec.state === 'inactive' || (a.track && a.track.readyState === 'ended')) {
+      a.motivo = a.motivo || 'Android cortó la grabación'; detener(a, 'corte');
+    }
+  }
+  function pausar() {
+    const a = actual; if (!a || a.terminando) return;
+    if (!a.pausado) {
+      try { a.rec.pause(); } catch (e) { return; }
+      a.pausado = true; a.inicioPausa = Date.now(); $('pausebtn').textContent = 'Reanudar';
+    } else {
+      try { a.rec.resume(); } catch (e) { return; }
+      a.pausado = false; a.tPausa += Date.now() - a.inicioPausa; a.ultimoTrozo = Date.now(); $('pausebtn').textContent = 'Pausar';
+      modificar(a.id, x => { x.pausasMs = a.tPausa; });
+    }
+  }
+  function detener(a, motivo) {
+    if (!a || a.terminando) return;
+    a.terminando = true; a.motivoFin = motivo;
+    if (a.pausado) { a.tPausa += Date.now() - a.inicioPausa; a.pausado = false; }
+    try { if (a.rec.state !== 'inactive') { a.rec.stop(); return; } } catch (e) {}
+    alTerminar(a);
+  }
+  async function alTerminar(a) {
+    if (a.finalizado) return;
+    a.finalizado = true; a.terminando = true;
+    const motivo = a.motivoFin || 'corte', cortada = motivo === 'corte';
+    clearInterval(a.tick);
+    try { a.stream.getTracks().forEach(x => x.stop()); } catch (e) {}
+    try { cancelAnimationFrame(a.raf); } catch (e) {}
+    try { a.ac && a.ac.close(); } catch (e) {}
+    cerrarMudo(a);
+    await a.cola;                                      // todos los trozos ya están en el teléfono
+    if (motivo !== 'ajena') {
+      await modificar(a.id, x => {
+        if (x.estado !== 'grabando') return false;
+        x.estado = 'detenida'; x.fin = new Date().toISOString(); x.ultimo = Date.now();
+        x.pausasMs = a.tPausa; x.mudoMs = a.mudoMs; x.mudos = a.mudos;
+        x.interrumpida = cortada; x.motivo = cortada ? (a.motivo || 'la grabación se cortó') : null;
+      });
+    }
+    if (a.soltar) { a.soltar(); a.soltar = null; }
+    if (actual === a) actual = null;
+    salirNegra(); soltarWakeLock(); uiReposo();
+    avisar({ t: 'detenida', id: a.id, cadena: a.cadena });
+    if (motivo === 'usuario') {
+      await guardarCadena(a.cadena, { code: a.codeElegido || null, pedir: false });
+    } else if (motivo === 'ajena' || motivo === 'remoto') {
+      status('Esta grabación se detuvo desde otra ventana de Nemdroid.');
+    } else {
+      vibrar();
+      status('⚠ <b>La grabación se cortó</b>' + (a.motivo ? ' (' + esc(a.motivo) + ')' : '') +
+             '. No se perdió: tocá <b>SEGUIR GRABANDO</b> arriba.');
+    }
+    render();
+  }
+  async function pedirDetener() {
+    const a = actual; if (!a || a.terminando) return;
+    const tiene = !!a.code;
+    const r = await modal({
+      titulo: tiene ? '¿Detener y guardar?' : '¿De quién es esta grabación?',
+      texto: tiene ? 'Paciente: <b>' + quien(a.code) + '</b>. Si no es, tocá el correcto:' : 'Elegí el paciente para guardarla:',
+      picker: true, code: a.code,
+      botones: [{ t: 'GUARDAR', v: 'guardar', cls: 'stop', requiere: true }, { t: 'seguir grabando', v: null }]
+               .concat(tiene ? [] : [{ t: 'detener sin elegir', v: 'sinpac', cls: 'del' }]) });
+    if (!r || actual !== a || a.terminando) return;
+    if (r.v === 'guardar' && r.code !== a.code) await cambiarPaciente(a.cadena, r.code);
+    a.codeElegido = r.v === 'guardar' ? r.code : null;
+    detener(a, 'usuario');
+  }
+  async function seguir(cadena) {
+    const ps = await cadenaDe(cadena), u = ps[ps.length - 1];
+    if (!u || u.estado === 'grabando') return;
+    await empezar({ padre: u.id });
+  }
+  function tituloGrabando() { document.title = actual ? '● ' + (actual.code || 'REC') + ' · Nemdroid' : 'Nemdroid'; }
+  function uiGrabando() {
+    const a = actual; if (!a) return;
+    document.body.classList.add('rec'); document.body.classList.toggle('nota', !!a.soloNota);
+    $('reclbl').textContent = a.soloNota ? 'NOTA' : 'REC';
+    $('recbtn').disabled = false;
+    $('pausebtn').disabled = false; $('stopbtn').disabled = false; $('notabtn').disabled = true;
+    $('negrabtn').style.display = '';
+    $('parte').textContent = a.parte > 1 ? 'parte ' + a.parte + ' (sigue la sesión: el tiempo es el total)' : '';
+    renderCodes(); pintarHint(); tituloGrabando();
+    status('Grabando. Si cambiás de app o se apaga la pantalla, sigue. Si Android la corta, al volver tocás <b>SEGUIR GRABANDO</b>.');
+  }
+  function uiReposo() {
+    document.body.classList.remove('rec', 'nota');
+    $('reclbl').textContent = 'GRABAR';
+    $('pausebtn').disabled = true; $('pausebtn').textContent = 'Pausar';
+    $('stopbtn').disabled = true; $('notabtn').disabled = false;
+    $('negrabtn').style.display = 'none'; $('parte').textContent = '';
+    $('lvl').setAttribute('r', 84); $('timer').textContent = '00:00';
+    renderCodes(); pintarHint(); tituloGrabando();
+  }
+
+  // ---------- pantalla negra: la app sigue al frente (lo más seguro) gastando casi nada ----------
+  let negra = false, toqueNegra = 0, muevoNegra = null;
+  function entrarNegra() {
+    if (!actual) return;
+    negra = true; $('negra').style.display = 'flex';
+    const mover = () => { const t = $('negratim'); t.style.left = (10 + Math.random() * 60) + '%'; t.style.top = (15 + Math.random() * 60) + '%'; };
+    mover(); clearInterval(muevoNegra); muevoNegra = setInterval(mover, 30000);
+  }
+  function salirNegra() { negra = false; $('negra').style.display = 'none'; clearInterval(muevoNegra); }
+  $('negra').addEventListener('click', () => { const t = Date.now(); if (t - toqueNegra < 650) salirNegra(); toqueNegra = t; });
+
+  // ---------- guardar: .webm + .json en Descargas ----------
+  function descargar(blob, nombre) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+  function lateral(m, padreNombre) {
+    const ini = new Date(m.inicio), fin = new Date(finMs(m));
+    return { formato: 'nemdroid-lateral', version: 2, app: 'nemdroid-pwa ' + VERSION,
+             archivo: m.nombre + '.webm', codigo: m.code,
+             inicio_ba: isoBA(ini), inicio_utc: ini.toISOString(), fin_utc: fin.toISOString(),
+             duracion_grabada_s: Math.round(duracionDe(m)), pausas_s: Math.round((m.pausasMs || 0) / 1000),
+             zona_dispositivo: m.zona, dispositivo: m.dispositivo || dev.nombre || dev.id,
+             solo_nota: !!m.soloNota, nuevo_paciente: !!m.nuevo,
+             parte: m.parte || 1, continua_de: padreNombre ? padreNombre + '.webm' : null,
+             interrumpida: !!m.interrumpida, motivo_corte: m.interrumpida ? (m.motivo || null) : null,
+             mic_sin_sonido_s: Math.round((m.mudoMs || 0) / 1000), mic_sin_sonido: m.mudos || [] };
+  }
+  const jsonBlob = o => new Blob([JSON.stringify(o, null, 1)], { type: 'application/json' });
+  function correccion(m, code, anterior) {
+    return { formato: 'nemdroid-correccion', version: 1, app: 'nemdroid-pwa ' + VERSION, archivo: m.nombre + '.webm',
+             codigo: code, codigo_anterior: anterior || null, fecha_utc: new Date().toISOString(),
+             dispositivo: dev.nombre || dev.id };
+  }
+  function fijarNombre(id, code, nuevo) {            // el nombre se decide al guardar (y una sola vez)
+    const f = m => {
+      if (!m || m.estado !== 'detenida' || (m.guardandoHasta || 0) > Date.now()) return false;
+      m.code = code; m.nuevo = !!nuevo; m.guardandoHasta = Date.now() + 15000;
+      if (!m.nombre || !m.nombre.startsWith(code + '__rbq_')) m.nombre = nombreNuevo(code, new Date(m.inicio));
+    };
+    if (mem.has(id)) { const m = mem.get(id).meta; return Promise.resolve(f(m) === false ? null : m); }
+    return tx('grabaciones', 'readwrite', (t, b) => {
+      const s = t.objectStore('grabaciones'), r = s.get(id);
+      r.onsuccess = () => { const m = r.result; if (f(m) === false) { b.v = null; return; } s.put(m); b.v = m; };
+    });
+  }
+  let colaGuardar = Promise.resolve();
+  function guardarCadena(cadena, opts) {
+    const p = colaGuardar.then(() => _guardar(cadena, opts || {}));
+    colaGuardar = p.catch(() => {});
+    return p;
+  }
+  async function _guardar(cadena, { code = null, pedir = true }) {
+    let ps = await cadenaDe(cadena);
+    if (!ps.some(p => p.estado === 'detenida')) { render(); return true; }
+    let c = code || codigoDe(ps);
+    if (!c && pedir) {
+      const r = await modal({ titulo: '¿De quién es esta grabación?', texto: resumen(ps), picker: true, directo: true,
+                              botones: [{ t: 'cancelar', v: null }] });
+      c = r && r.code;
+    }
+    if (!c) {
+      status('⚠ Falta elegir el paciente. La grabación queda en el teléfono (arriba): tocá <b>ELEGIR PACIENTE Y GUARDAR</b>.');
+      render(); return false;
+    }
+    const hechos = [];
+    for (const p of ps) if (p.estado === 'detenida' && p.code !== c) await modificar(p.id, x => { x.code = c; });
+    for (const p of ps) {
+      if (p.estado !== 'detenida') continue;
+      const o = obj(c), nuevo = !!(o && o.nuevo) && (p.parte || 1) === 1;
+      const m = await fijarNombre(p.id, c, nuevo);
+      if (!m) continue;
+      const blobs = await blobsDe(p.id);
+      if (blobs.length) {
+        if (hechos.length) await sleep(800);           // espacio entre descargas de varias partes
+        descargar(new Blob(blobs, { type: 'audio/webm' }), m.nombre + '.webm');
+        await sleep(800);
+        descargar(jsonBlob(lateral(m, m.padre ? archivoPrevio(ps, m.padre) : null)), m.nombre + '.json');
+        hechos.push(m);
+      }
+      await modificar(p.id, x => { x.estado = 'guardada'; x.guardadaEn = new Date().toISOString(); x.codigoGuardado = c; x.code = c; x.vacia = !blobs.length; });
+      Object.assign(p, { estado: 'guardada', nombre: m.nombre, code: c, codigoGuardado: c, vacia: !blobs.length });
+      respaldo.delete(p.id);
+      if (o && o.nuevo) { o.nuevo = false; guardarCodigos(); }
+    }
+    if (!actual && sel === c) sel = null;             // la próxima grabación: elegís de nuevo (evita guardar con el paciente anterior)
+    renderCodes(); pintarHint();
+    avisar({ t: 'cambio' });
+    if (hechos.length) {
+      ultimaGuardada = cadena;
+      status('✅ Guardada en <b>Descargas</b>: <b>' + quien(c) + '</b> · ' + hechos.map(m => esc(m.nombre)).join(' + ') +
+             ' (.webm y .json)' + (actual ? '. Sigue grabando la parte ' + actual.parte + '.' : '. Si el paciente no es ese, tocá CAMBIAR PACIENTE.'));
+    }
+    render();
+    return true;
+  }
+  async function cambiarPaciente(cadena, code) {
+    const ps = await cadenaDe(cadena), viejo = codigoDe(ps);
+    if (!code || code === viejo) return;
+    const mandadas = [];
+    for (const p of ps) {
+      if (p.estado === 'guardada' && p.nombre && !p.vacia) {
+        const cor = correccion(p, code, p.code);
+        if (mandadas.length) await sleep(800);
+        descargar(jsonBlob(cor), 'correccion__rbq_' + p.nombre + '.json');
+        mandadas.push(p.nombre);
+        await modificar(p.id, x => { x.code = code; (x.correcciones = x.correcciones || []).push({ codigo: code, fecha: cor.fecha_utc }); });
+      } else {
+        await modificar(p.id, x => { x.code = code; });
+      }
+    }
+    if (actual && actual.cadena === cadena) { actual.code = code; uiGrabando(); }
+    const o = obj(code); if (o && o.nuevo && mandadas.length) { o.nuevo = false; guardarCodigos(); }
+    avisar({ t: 'paciente', cadena, code });
+    if (mandadas.length) {
+      status('✅ Ahora es de <b>' + quien(code) + '</b>. Se mandó la corrección a la PC (<span class="mono">correccion__rbq_…json</span> en Descargas): ' +
+             'el audio conserva su nombre, pero la PC lo procesa como ' + esc(code) + ' (y si ya lo había procesado, lo mueve).');
+    } else if (!actual) status('Paciente cambiado a <b>' + quien(code) + '</b>.');
+    render();
+  }
+  async function cambiarDesdeTarjeta(cadena) {
+    const ps = await cadenaDe(cadena), c = codigoDe(ps);
+    const r = await modal({ titulo: 'Cambiar el paciente', texto: 'Ahora: <b>' + quien(c) + '</b>. Tocá el correcto:',
+                            picker: true, code: c, directo: true, botones: [{ t: 'cancelar', v: null }] });
+    if (r && r.code && r.code !== c) await cambiarPaciente(cadena, r.code);
+  }
+  async function archivosDe(ps) {
+    const files = [];
+    for (const p of ps) {
+      if (p.estado !== 'guardada' || !p.nombre || p.vacia) continue;
+      const blobs = await blobsDe(p.id);
+      if (!blobs.length) continue;
+      const lat = lateral(Object.assign({}, p, { code: p.codigoGuardado || p.code }), p.padre ? archivoPrevio(ps, p.padre) : null);
+      files.push(new File(blobs, p.nombre + '.webm', { type: 'audio/webm' }));
+      files.push(new File([JSON.stringify(lat, null, 1)], p.nombre + '.json', { type: 'application/json' }));
+      if (p.codigoGuardado && p.code !== p.codigoGuardado) {
+        files.push(new File([JSON.stringify(correccion(p, p.code, p.codigoGuardado), null, 1)],
+                            'correccion__rbq_' + p.nombre + '.json', { type: 'application/json' }));
+      }
+    }
+    return files;
+  }
+  async function redescargar(cadena) {
+    const files = await archivosDe(await cadenaDe(cadena));
+    if (!files.length) { status('⚠ Ya no está en el teléfono.'); return; }
+    for (const f of files) { descargar(f, f.name); await sleep(800); }
+    status('Descargados de nuevo (' + files.length + ' archivos). Si ya estaban, la PC reconoce la copia y no la duplica.');
+  }
+  async function compartir(cadena) {
+    const files = await archivosDe(await cadenaDe(cadena));
+    if (!files.length) { status('⚠ Ya no está en el teléfono.'); return; }
+    if (nav.canShare && nav.canShare({ files })) {
+      try { await nav.share({ files, title: files[0].name }); } catch (e) {}
+      status('Si elegiste <b>Mis Archivos → Nemdroid</b>, listo (' + files.length + ' archivos).');
+    } else {
+      for (const f of files) { descargar(f, f.name); await sleep(800); }
+      status('Este teléfono no deja compartir archivos: los descargué de nuevo (' + files.length + ').');
+    }
+  }
+  async function descartar(cadena) {
+    const pend = (await cadenaDe(cadena)).filter(p => p.estado === 'detenida');
+    const dur = pend.reduce((s, p) => s + duracionDe(p), 0);
+    const r = await modal({ titulo: '¿Descartar esta grabación?',
+      texto: 'Se borran del teléfono <b>' + fmtDur(dur) + '</b> de grabación sin guardar. No se puede deshacer.',
+      botones: [{ t: 'SÍ, BORRAR', v: 'si', cls: 'rojo' }, { t: 'no', v: null }] });
+    if (!r) return;
+    for (const p of pend) await borrar(p.id);
+    avisar({ t: 'cambio' }); render();
+  }
+  async function purgar() {
+    const lim = Date.now() - RETENER_H * 3600e3;
+    const guardadas = [...agrupar(await todas()).values()].filter(ps => ps.every(p => p.estado === 'guardada'))
+      .map(ps => ({ ps, t: Math.max(...ps.map(p => Date.parse(p.guardadaEn) || Date.parse(p.inicio) || 0)) })).sort((a, b) => b.t - a.t);
+    for (let k = 0; k < guardadas.length; k++) {
+      if (guardadas[k].t < lim || k >= MAX_GUARDADAS) for (const p of guardadas[k].ps) await borrar(p.id);
+    }
+  }
+
+  // ---------- ventanita de opciones (elegir paciente, confirmar) ----------
+  let cerrarModal = null;
+  function modal({ titulo, texto = '', picker = false, code = null, directo = false, botones = [] }) {
+    if (cerrarModal) cerrarModal(null);
+    return new Promise(res => {
+      let elegido = code;
+      const caja = $('modal'), pk = $('mpick'), bot = $('mbot');
+      $('mtit').textContent = titulo; $('mtxt').innerHTML = texto;
+      pk.innerHTML = ''; bot.innerHTML = '';
+      const cerrar = v => { caja.style.display = 'none'; cerrarModal = null; res(v); };
+      cerrarModal = cerrar;
+      const btns = [];
+      const pintarBtns = () => btns.forEach(([el, b]) => { el.disabled = !!b.requiere && !elegido; });
+      const tocar = c => { elegido = c; if (directo) cerrar({ v: 'codigo', code: c }); else { pintarLista(); pintarBtns(); } };
+      const q = document.createElement('input');
+      const lst = document.createElement('div');
+      const pintarLista = () => {
+        lst.innerHTML = '';
+        const f = (q.value || '').trim().toLowerCase();
+        ordenados().filter(o => !f || o.c.includes(f) || (o.alias || '').toLowerCase().includes(f)).forEach(o => {
+          const b = document.createElement('button');
+          b.className = 'chip' + (o.c === elegido ? ' sel' : ''); b.innerHTML = etiqueta(o);
+          b.onclick = () => tocar(o.c);
+          lst.appendChild(b);
+        });
+        const nv = document.createElement('button'); nv.className = 'chip edit'; nv.textContent = '+ nuevo paciente';
+        nv.onclick = () => { const c = crearPaciente(); if (c) tocar(c); };
+        lst.appendChild(nv);
+      };
+      if (picker) {
+        q.className = 'fld'; q.placeholder = 'buscar código o alias…'; q.style.fontFamily = 'var(--sans)'; q.style.fontSize = '13px';
+        q.addEventListener('input', pintarLista);
+        lst.className = 'codes mlist';
+        if (codigos.length > 10) pk.appendChild(q);
+        pk.appendChild(lst); pintarLista();
+      }
+      botones.forEach(b => {
+        const el = document.createElement('button'); el.className = 'btn2 ' + (b.cls || ''); el.textContent = b.t;
+        el.onclick = () => { if (b.requiere && !elegido) return; cerrar(b.v === null ? null : { v: b.v, code: elegido }); };
+        bot.appendChild(el); btns.push([el, b]);
+      });
+      pintarBtns();
+      caja.style.display = 'flex';
+    });
+  }
+
+  // ---------- tarjetas: cortadas / sin guardar / grabando en otra ventana / guardadas ----------
+  let ultimaGuardada = null, pintando = null, otraVez = false;
+  function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; }
+  function boton(txt, cls, fn) { const b = el('button', 'btn2 sm ' + (cls || '')); b.textContent = txt; b.onclick = fn; return b; }
+  function resumen(ps) {
+    const dur = ps.reduce((s, p) => s + duracionDe(p), 0);
+    return horaBA(Date.parse(ps[0].inicio)) + ' · ' + fmtDur(dur) + (ps.length > 1 ? ' · ' + ps.length + ' partes' : '') +
+           (ps[0].soloNota ? ' · nota' : '');
+  }
+  function render() {
+    if (pintando) { otraVez = true; return pintando; }
+    pintando = (async () => {
+      try { do { otraVez = false; await pintar(); } while (otraVez); } catch (e) {}
+      pintando = null;
+    })();
+    return pintando;
+  }
+  async function pintar() {
+    const ms = await todas(), held = await locksTomados();
+    const vivas = [], pend = [], hechas = [];
+    for (const ps of agrupar(ms).values()) {
+      const g = ps.find(p => p.estado === 'grabando');
+      if (g) {
+        if ((actual && actual.id === g.id) || g.id === iniciandoId) continue;
+        if (mem.has(g.id)) continue;
+        if (await viva(g, held)) {
+          vivas.push({ ps, g }); vigilar(g.id);
+          if (!noticias.has(g.id)) noticias.set(g.id, { seg: ps.filter(p => p !== g).reduce((s, p) => s + duracionDe(p), 0) + duracionDe(g),
+                                                       at: g.ultimo || Date.now(), pausado: false });
+        }
+        else { await marcarCortada(g.id, 'Android cerró la app mientras grababa'); otraVez = true; }
+        continue;
+      }
+      if (actual && actual.cadena === ps[0].cadena) continue;
+      if (ps.some(p => p.estado === 'detenida')) pend.push(ps); else hechas.push(ps);
+    }
+    const box = $('pendientes'); box.innerHTML = '';
+    for (const { ps, g } of vivas) {
+      const d = el('div', 'card vivo');
+      d.innerHTML = '<div class="ct">● GRABANDO EN OTRA VENTANA DE NEMDROID</div>' +
+        '<div class="cd"><b>' + quien(codigoDe(ps)) + '</b> · desde las ' + horaBA(Date.parse(ps[0].inicio)) +
+        ' · <span class="mono" id="vivo-' + esc(g.id) + '"></span></div>';
+      const r = el('div', 'row l');
+      r.append(boton('DETENER Y GUARDAR', 'stop', () => detenerRemota(g)),
+               boton('SEGUIR EN ESTA VENTANA', 'warn', () => traerAca(g)),
+               boton('paciente', '', () => cambiarDesdeTarjeta(g.cadena)));
+      d.append(r, el('div', 'sub', 'Sigue grabando allá. Esta ventana no puede grabar otra cosa al mismo tiempo. ' +
+                                   '«Seguir en esta ventana» la pasa acá (la PC une las partes).'));
+      box.append(d);
+    }
+    for (const ps of pend.sort((a, b) => Date.parse(b[0].inicio) - Date.parse(a[0].inicio))) {
+      const u = ps[ps.length - 1], c = codigoDe(ps), cortada = !!u.interrumpida;
+      const d = el('div', 'card');
+      d.innerHTML = '<div class="ct">' + (cortada ? '⚠ SE CORTÓ — NO SE PERDIÓ' : '⚠ SIN GUARDAR') + '</div>' +
+        '<div class="cd"><b>' + quien(c) + '</b> · ' + resumen(ps) +
+        (cortada ? '<br>Se cortó a las ' + horaBA(finMs(u)) + (u.motivo ? ' (' + esc(u.motivo) + ')' : '') : '') + '</div>';
+      const r = el('div', 'row l');
+      if (cortada && !u.soloNota) r.append(boton('SEGUIR GRABANDO', 'warn', () => seguir(u.cadena)));
+      r.append(boton(c ? 'GUARDAR' : 'ELEGIR PACIENTE Y GUARDAR', 'stop', () => guardarCadena(u.cadena, {})));
+      if (c) r.append(boton('paciente', '', () => cambiarDesdeTarjeta(u.cadena)));
+      r.append(boton('descartar', 'del', () => descartar(u.cadena)));
+      d.append(r);
+      if (cortada && !u.soloNota) d.append(el('div', 'sub', '«Seguir grabando» graba la parte ' + ((u.parte || 1) + 1) +
+                                                    ' y guarda lo anterior: la PC une las partes en una sola sesión.'));
+      box.append(d);
+    }
+    const otra = vivas.length > 0 && !actual;
+    $('recbtn').disabled = otra; $('notabtn').disabled = otra || !!actual;
+    if (!actual) $('reclbl').textContent = otra ? 'GRABANDO EN OTRA VENTANA' : 'GRABAR';
+    const tg = ps => Math.max(...ps.map(p => Date.parse(p.guardadaEn) || 0));
+    hechas.sort((a, b) => tg(b) - tg(a));
+    const ult = $('ultimo'); ult.innerHTML = '';
+    const top = hechas[0];
+    if (top && (top[0].cadena === ultimaGuardada || Date.now() - tg(top) < 2 * 3600e3)) {
+      const c = codigoDe(top), c0 = top[0].codigoGuardado;
+      const d = el('div', 'card ok');
+      d.innerHTML = '<div class="ct">✅ GUARDADA EN DESCARGAS</div><div class="cd"><b>' + quien(c) + '</b> · ' + resumen(top) +
+        (c0 && c0 !== c ? '<br>Corregida (era ' + esc(c0) + '): la PC la procesa como ' + esc(c) + '.' : '') +
+        '<br><span class="mono">' + top.filter(p => p.nombre).map(p => esc(p.nombre) + '.webm + .json').join('<br>') + '</span></div>';
+      const r = el('div', 'row l');
+      r.append(boton('CAMBIAR PACIENTE', 'warn', () => cambiarDesdeTarjeta(top[0].cadena)),
+               boton('MOVER A NEMDROID', 'stop', () => compartir(top[0].cadena)),
+               boton('descargar de nuevo', '', () => redescargar(top[0].cadena)));
+      d.append(r);
+      ult.append(d);
+    }
+    const lst = $('rec48l'); lst.innerHTML = '';
+    $('rec48').style.display = hechas.length ? '' : 'none';
+    $('rec48s').textContent = 'Guardadas en las últimas ' + RETENER_H + ' h (' + hechas.length + ') — siguen también en el teléfono';
+    for (const ps of hechas) {
+      const c = codigoDe(ps), c0 = ps[0].codigoGuardado;
+      const f = el('div', 'fila');
+      f.append(el('span', 't', '<b>' + quien(c) + '</b>' + (c0 && c0 !== c ? ' (era ' + esc(c0) + ')' : '') + ' · ' +
+                              new Date(Date.parse(ps[0].inicio)).toLocaleDateString('es-AR', { timeZone: BA, day: '2-digit', month: '2-digit' }) +
+                              ' ' + resumen(ps)));
+      const b1 = el('button'); b1.textContent = 'paciente'; b1.onclick = () => cambiarDesdeTarjeta(ps[0].cadena);
+      const b2 = el('button'); b2.textContent = 'descargar'; b2.onclick = () => redescargar(ps[0].cadena);
+      const b3 = el('button'); b3.textContent = 'mover'; b3.onclick = () => compartir(ps[0].cadena);
+      f.append(b1, b2, b3); lst.append(f);
+    }
+    pintarVivas();
+  }
+  function pintarVivas() {
+    for (const [id, n] of noticias) {
+      const e = $('vivo-' + id);
+      if (!e) continue;
+      const hace = (Date.now() - n.at) / 1000;
+      e.textContent = fmt(n.seg + (n.pausado ? 0 : hace)) + (n.pausado ? ' (en pausa)' : '') +
+                      (hace > 8 ? ' · la otra ventana no da noticias hace ' + Math.round(hace) + ' s' : '');
+    }
+  }
+
+  // ---------- volver a la app / irse ----------
+  document.addEventListener('visibilitychange', () => {
+    const a = actual;
+    if (document.visibilityState === 'hidden') {
+      if (a && !a.pausado && !a.terminando) { try { a.rec.requestData(); } catch (e) {} }
+    } else {
+      if (a) { chequear(a); pedirWakeLock(); }
+      render();
+    }
+  });
+  window.addEventListener('pagehide', () => { const a = actual; if (a && !a.terminando) { try { a.rec.requestData(); } catch (e) {} } });
+  document.addEventListener('freeze', () => { const a = actual; if (a && !a.terminando) { try { a.rec.requestData(); } catch (e) {} } });
+  document.addEventListener('resume', () => { if (actual) chequear(actual); render(); });
+  window.addEventListener('beforeunload', e => { if (actual) { e.preventDefault(); e.returnValue = ''; } });
+
+  $('recbtn').onclick = () => { if (!actual) empezar({}); };
+  $('notabtn').onclick = () => empezar({ soloNota: true });
+  $('pausebtn').onclick = pausar;
+  $('stopbtn').onclick = pedirDetener;
+  $('negrabtn').onclick = entrarNegra;
+  $('nuevo').onclick = nuevoPaciente;
+  $('cargar').onclick = () => $('archivo').click();
+  $('archivo').onchange = e => { cargarArchivo(e.target.files[0]); e.target.value = ''; };
+  $('addbtn').onclick = agregarExistente;
+  $('codesearch').addEventListener('input', renderLista);
+  $('devbtn').onclick = () => {
+    const v = prompt('Nombre corto de este dispositivo (por ejemplo S26 o Tab):', dev.nombre || '');
+    if (v === null) return;
+    const n = v.trim().slice(0, 12);
+    if (n && !/^[A-Za-z0-9 \-]+$/.test(n)) { alert('Sólo letras, números y guiones.'); return; }
+    dev.nombre = n; guardar(K.dev, dev); renderLista();
+  };
+
+  async function arranque() {
+    await abrirDB();
+    try { await migrarVieja(); } catch (e) {}
+    try { nav.storage && nav.storage.persist && nav.storage.persist(); } catch (e) {}
+    try { await purgar(); } catch (e) {}
+    await render();
+    const pend = $('pendientes').children.length;
+    if (pend && !actual) status('⚠ Hay ' + pend + ' grabación(es) arriba que necesitan que hagas algo.');
+  }
+  if (codigos.length) guardarCodigos();
+  renderCodes(); pintarHint(); reloj();
+  setInterval(reloj, 20000);
+  setInterval(() => { if (document.visibilityState === 'visible') pintarVivas(); }, 1000);
+  setInterval(() => { if (!(nav.locks && nav.locks.query) && document.visibilityState === 'visible' && !actual) render(); }, 5000);
+  arranque();
+
+  // sólo para pruebas automáticas (no se usa en el teléfono)
+  window.__nemdroid = { normalizarCodigo, parsearLista, stampBA, isoBA, esArgentina, siguienteLibre, nombreNuevo, lateral,
+                        duracionDe, version: VERSION, todas, trozosDe, render,
+                        estado: () => actual ? { id: actual.id, cadena: actual.cadena, parte: actual.parte, code: actual.code,
+                                                 rec: actual.rec.state, trozos: actual.i } : null,
+                        cortar: () => { const a = actual; if (a && a.track) { try { a.track.stop(); } catch (e) {} a.track.dispatchEvent(new Event('ended')); } },
+                        trabar: () => { if (actual) actual.rec.ondataavailable = () => {}; },
+                        set codigosPrueba(v) { codigos = v; }, set listaPrueba(v) { lista = v; } };
+})();
+</script>
+</body>
+</html>
